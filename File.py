@@ -58,7 +58,7 @@ def command(key):
     key = key.strip()
     println(f'<{username}> $ {key}')
     if not key:
-        return "error"
+        return "ok"
 
     name = key.split()[0]
     if name == "ls":
@@ -111,6 +111,11 @@ def StringSplitCD(stroka):
 
 
 debug_params()
+
+if args.vfs is not None and not os.path.isdir(args.vfs):
+    println(f"[ОШИБКА] Путь VFS не существует: {args.vfs}")
+
 if args.script:
     run_script(args.script)
+
 root.mainloop()

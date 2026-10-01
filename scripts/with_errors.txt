@@ -1,0 +1,6 @@
+ls
+cd test
+unknown_command
+ls -l
+bad_command
+cd ..
