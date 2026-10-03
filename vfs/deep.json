@@ -1,0 +1,13 @@
+{
+  "home": {
+    "user": {
+      "docs": {
+        "report.txt": "report"
+      },
+      "todo.txt": "todo"
+    }
+  },
+  "etc": {
+    "config.txt": "cfg"
+  }
+}

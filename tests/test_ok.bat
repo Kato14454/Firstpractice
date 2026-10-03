@@ -1,6 +1,7 @@
 @echo off
 cd /d "%~dp0.."
 
-python File.py --vfs .\vfs --script .\scripts\with_exit.txt
+python File.py --vfs vfs\minimal.json
+python File.py --vfs vfs\minimal.json --script .\scripts\ok.txt
 
 pause

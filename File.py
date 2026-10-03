@@ -4,6 +4,7 @@ import getpass
 import socket
 import argparse
 import os
+import json
 
 username  = getpass.getuser()
 hostname = socket.gethostname()
@@ -45,6 +46,48 @@ output.pack(side='top', fill='both', expand=True)
 def println(text):
     output.insert('end', text + "\n")
     output.see('end')
+
+
+vfs_root = None
+
+
+def count_nodes(folder):
+    files = 0
+    dirs = 0
+    for name, node in folder.items():
+        if isinstance(node, dict):
+            dirs += 1
+            f, d = count_nodes(node)
+            files += f
+            dirs += d
+        else:
+            files += 1
+    return files, dirs
+
+
+def load_vfs(path):
+    global vfs_root
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        println(f"[ОШИБКА] Файл VFS не найден: {path}")
+        return False
+    except json.decoder.JSONDecodeError as e:
+        println(f"[ОШИБКА] VFS не является корректным JSON: {e}")
+        return False
+    except OSError as e:
+        println(f"[ОШИБКА] Не удалось прочитать VFS: {e}")
+        return False
+    if not isinstance(data, dict):
+        println("[ОШИБКА] Корень VFS должен быть папкой, то есть { ... }")
+        return False
+
+    vfs_root = data
+    files,dirs = count_nodes(data)
+    println(f"[INFO] VFS загружена: {path}")
+    println(f"[INFO] Файлов: {files}, папок: {dirs}")
+    return True
 
 
 def debug_params():
@@ -112,8 +155,8 @@ def StringSplitCD(stroka):
 
 debug_params()
 
-if args.vfs is not None and not os.path.isdir(args.vfs):
-    println(f"[ОШИБКА] Путь VFS не существует: {args.vfs}")
+if args.vfs is not None:
+    load_vfs(args.vfs)
 
 if args.script:
     run_script(args.script)

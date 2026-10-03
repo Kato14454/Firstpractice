@@ -1,0 +1,16 @@
+# ---------- ls ----------
+ls
+ls -l
+ls -la /home
+
+# ---------- cd ----------
+cd /home
+cd /home/user/docs
+cd
+
+# ---------- ошибки ----------
+foo
+badcommand arg1 arg2
+
+# ---------- выход ----------
+exit
