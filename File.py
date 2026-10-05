@@ -1,3 +1,4 @@
+import string
 from sys import path
 from tkinter import *
 from tkinter import ttk
@@ -180,15 +181,18 @@ def cmd_ls(cmd_args):
         items = [(target.split("/")[-1], node)]
 
     names = []
+    base = resolve(target) if isinstance(node, dict) else resolve(target)[:-1]
     for name, child in items:
         if isinstance(child, dict):
             if long_format:
-                println(f"d  {name}/")
+                m = get_mode(base + [name], child)
+                println(f"d{m}  {name}/  {mtimes.get(path_key(base + [name]), '-')}")
             else:
                 names.append(name + "/")
         else:
             if long_format:
-                println(f"-  {name}  {len(child)}")
+                m = get_mode(base + [name], child)
+                println(f"-{m}  {name}  {len(child)}  {mtimes.get(path_key(base + [name]), '-')}")
             else:
                 names.append(name)
     if names:
@@ -235,6 +239,106 @@ def cmd_who(cmd_args):
     return "ok"
 
 
+
+mtimes = {}
+
+def path_key(parts):
+    return "/" + "/".join(parts)
+
+
+modes = {}   # полный путь -> права вида "rw-r--r--"
+
+
+def default_mode(node):
+    return "rwxr-xr-x" if isinstance(node, dict) else "rw-r--r--"
+
+
+def get_mode(parts, node):
+    return modes.get(path_key(parts), default_mode(node))
+
+
+def octal_to_str(digits):
+    """'644' -> 'rw-r--r--'"""
+    result = ""
+    for d in digits:
+        n = int(d)
+        result += "r" if n & 4 else "-"    # бит 4 включён?
+        result += "w" if n & 2 else "-"    # бит 2 включён?
+        result += "x" if n & 1 else "-"    # бит 1 включён?
+    return result
+
+
+def cmd_chmod(cmd_args):
+    if vfs_root is None:
+        println("chmod: VFS не загружена (укажите --vfs)")
+        return "error"
+    if len(cmd_args) < 2:
+        println("chmod: использование: chmod <режим> <файл>...")
+        return "error"
+
+    digits = cmd_args[0]
+    if len(digits) != 3 or any(c not in "01234567" for c in digits):
+        println(f"chmod: неверный режим: '{digits}'")
+        return "error"
+    new_mode = octal_to_str(digits)
+
+    status = "ok"
+    for p in cmd_args[1:]:
+        parts = resolve(p)
+        if get_node(parts) is None:
+            println(f"chmod: {p}: нет такого файла или каталога")
+            status = "error"
+        else:
+            modes[path_key(parts)] = new_mode
+    return status
+
+
+def now():
+    return time.strftime("%Y-%m-%d %H:%M")
+
+
+def cmd_touch(cmd_args):
+    if vfs_root is None:
+        println("touch: VFS не загружена (укажите --vfs)")
+        return "error"
+
+    path = []
+    createFile = True
+    for a in cmd_args:
+        if a.startswith("-"):
+            if a != "-c":
+                println(f"touch: неизвестный флаг '{a}'")
+                return "error"
+            createFile = False
+        else:
+            path.append(a)
+    if not path:
+        println("touch: файл не указан")
+        return "error"
+    status = "ok"
+    for p in path:
+        parts = resolve(p)
+        if not parts:
+            println(f"touch: {p}: это корневой каталог")
+            status = "error"
+            continue
+
+        parent = get_node(parts[:-1])
+        name = parts[-1]
+
+        if not isinstance(parent, dict):
+            println(f"touch: {p}: нет такого каталога")
+            status = "error"
+        elif name in parent:
+            mtimes[path_key(parts)] = now()
+            println(f"Время файла {name} обновлено")
+        elif createFile:
+            parent[name] = ""
+            mtimes[path_key(parts)] = now()
+            println(f"Файл {name} успешно создан")
+    return status
+
+
 def debug_params():
     println("[DEBUG] Параметры запуска эмулятора:")
     println(f"[DEBUG]   --vfs    = {args.vfs}")
@@ -260,6 +364,10 @@ def command(key):
         return cmd_tree(cmd_args)
     elif name == "who":
         return cmd_who(cmd_args)
+    elif name == "chmod":
+        return cmd_chmod(cmd_args)
+    elif name == "touch":
+        return cmd_touch(cmd_args)
     elif name == "exit":
         return "exit"
     else:

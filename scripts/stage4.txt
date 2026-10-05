@@ -3,7 +3,7 @@ ls
 ls -l
 ls home
 ls -l home/user
-ls home/user/todo.txt
+ls home/user/tdo.txt
 
 
 cd home/user
@@ -27,13 +27,13 @@ who
 
 
 cd /nope
-cd /home/user/todo.txt
+cd /home/user/tdo.txt
 cd a b
 ls -x
 ls a b
 ls /nope
 tree /nope
-tree /home/user/todo.txt
+tree /home/user/tdo.txt
 who x
 foo
 

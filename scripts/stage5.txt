@@ -1,0 +1,59 @@
+touch a.txt
+ls -l
+touch b.txt c.txt
+ls
+touch home/user/new.txt
+ls -l home/user
+cd home/user
+touch rel.txt
+touch docs/inner.txt
+ls docs
+cd /
+
+
+touch a.txt
+ls -l
+touch home/user/tdo.txt
+ls -l home/user
+
+
+touch -c ghost.txt
+ls
+touch -c a.txt
+ls -l
+
+
+chmod 755 a.txt
+ls -l
+chmod 000 a.txt
+ls -l
+chmod 644 a.txt
+ls -l
+chmod 700 home
+ls -l
+chmod 600 b.txt c.txt
+ls -l
+chmod 644 home/user/tdo.txt
+ls -l home/user
+
+
+tree
+
+
+touch
+touch -x a.txt
+touch /nope/x.txt
+touch home/user/tdo.txt/x
+touch /
+
+
+chmod
+chmod 644
+chmod 999 a.txt
+chmod 64 a.txt
+chmod abc a.txt
+chmod 644 /nope
+chmod 644 a.txt /nope
+
+
+exit
