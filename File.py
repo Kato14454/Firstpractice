@@ -1,3 +1,4 @@
+from sys import path
 from tkinter import *
 from tkinter import ttk
 import getpass
@@ -5,6 +6,7 @@ import socket
 import argparse
 import os
 import json
+import time
 
 username  = getpass.getuser()
 hostname = socket.gethostname()
@@ -90,6 +92,149 @@ def load_vfs(path):
     return True
 
 
+cwd = []
+
+
+def cwd_str():
+    return "/" + "/".join(cwd)
+
+
+def resolve(path):
+    parts = [] if path.startswith("/") else list(cwd)
+    for part in path.split("/"):
+        if part == "" or part == ".":
+            continue
+        if part == "..":
+            if parts:
+                parts.pop()
+        else:
+            parts.append(part)
+    return parts
+
+
+def get_node(parts):
+    node = vfs_root
+    for name in parts:
+        if not isinstance(node, dict) or name not in node:
+            return None
+        node = node[name]
+    return node
+
+
+def cmd_cd(cmd_args):
+    global cwd
+    if vfs_root is None:
+        println("cd: VFS не загружена (укажите --vfs)")
+        return "error"
+    if len(cmd_args) > 1:
+        println("cd: слишком много аргументов")
+        return "error"
+
+    target = cmd_args[0] if cmd_args else "/"
+    parts = resolve(target)
+    node = get_node(parts)
+
+    if node is None:
+        println(f"cd: {target}: нет такого файла или каталога")
+        return "error"
+    if not isinstance(node, dict):
+        println(f"cd: {target}: не является каталогом")
+        return "error"
+
+    cwd = parts
+    if len(cwd) > 1:
+        println(f"Переход в <{cwd_str()}> произведен успешно")
+    else:
+        println(f"Переход в /home произведен успешно")
+    return "ok"
+
+
+def cmd_ls(cmd_args):
+    if vfs_root is None:
+        println("ls: VFS не загружена (укажите --vfs)")
+        return "error"
+
+    long_format = False
+    paths = []
+    for a in cmd_args:
+        if a.startswith("-"):
+            if a != "-l":
+                println(f"ls: неизвестный флаг '{a}'")
+                return "error"
+            long_format = True
+        else:
+            paths.append(a)
+    if len(paths) > 1:
+        println("ls: слишком много аргументов")
+        return "error"
+
+    target = paths[0] if paths else "."
+    node = get_node(resolve(target))
+    if node is None:
+        println(f"ls: {target}: нет такого файла или каталога")
+        return "error"
+
+    if isinstance(node, dict):
+        items = sorted(node.items())
+    else:
+        items = [(target.split("/")[-1], node)]
+
+    names = []
+    for name, child in items:
+        if isinstance(child, dict):
+            if long_format:
+                println(f"d  {name}/")
+            else:
+                names.append(name + "/")
+        else:
+            if long_format:
+                println(f"-  {name}  {len(child)}")
+            else:
+                names.append(name)
+    if names:
+        println("  ".join(names))
+    return "ok"
+
+
+def print_tree(folder,k=0):
+    stroka = "    "
+    for name,child in folder.items():
+        println(f"{k*stroka}{name}:")
+        if isinstance(child, dict):
+            print_tree(child,k+1)
+
+
+def cmd_tree(cmd_args):
+    if vfs_root is None:
+        println("tree: VFS не загружена (укажите --vfs)")
+        return "error"
+    if len(cmd_args) > 1:
+        println("tree: слишком много аргументов")
+        return "error"
+
+    target = cmd_args[0] if cmd_args else "."
+    node = get_node(resolve(target))
+    if node is None:
+        println(f"tree: {target}: нет такого файла или каталога")
+        return "error"
+    if not isinstance(node, dict):
+        println(f"tree: {target}: не является каталогом")
+        return "error"
+
+    print_tree(node)
+    return "ok"
+
+
+start_time =  time.strftime("%Y-%m-%d %H:%M")
+
+def cmd_who(cmd_args):
+    if cmd_args:
+        println(f"who: лишние аргументы")
+        return "error"
+    println(f"{username} tty1 {start_time}")
+    return "ok"
+
+
 def debug_params():
     println("[DEBUG] Параметры запуска эмулятора:")
     println(f"[DEBUG]   --vfs    = {args.vfs}")
@@ -99,17 +244,22 @@ def debug_params():
 
 def command(key):
     key = key.strip()
-    println(f'<{username}> $ {key}')
+    println(f'<{username}"@{hostname}: {cwd_str()}> $ {key}')
     if not key:
         return "ok"
 
-    name = key.split()[0]
+    words = key.split()
+    name = words[0]
+    cmd_args = words[1:]
+
     if name == "ls":
-        println(f"ls: {StringSplitLS(key)}")
-        return "ok"
+        return cmd_ls(cmd_args)
     elif name == ("cd"):
-        println(f"cd: {StringSplitCD(key)}")
-        return "ok"
+        return cmd_cd(cmd_args)
+    elif name =="tree":
+        return cmd_tree(cmd_args)
+    elif name == "who":
+        return cmd_who(cmd_args)
     elif name == "exit":
         return "exit"
     else:
@@ -134,23 +284,6 @@ def run_script(path):
                 return
             elif status == "error":
                 println(f"[ОШИБКА]: строка {k}, команда пропущена")
-
-
-
-def StringSplitLS(stroka):
-    parts = stroka.split(maxsplit=2)
-    first = parts[1] if len(parts) > 1 else ""
-    second = parts[2] if len(parts) > 2 else "None"
-    return f"flags: [{first}], path: {second}"
-
-
-def StringSplitCD(stroka):
-    parts = stroka.split(maxsplit=2)
-    first = parts[1] if len(parts) > 1 else ""
-    if first == "":
-        return "остаемся там же"
-    else:
-        return f"перемещен в {first}"
 
 
 debug_params()

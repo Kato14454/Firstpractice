@@ -1,0 +1,41 @@
+
+ls
+ls -l
+ls home
+ls -l home/user
+ls home/user/todo.txt
+
+
+cd home/user
+ls
+cd docs
+ls
+cd ../..
+cd /etc
+ls
+cd ..
+cd
+
+
+tree
+tree home/user
+cd home
+tree
+
+
+who
+
+
+cd /nope
+cd /home/user/todo.txt
+cd a b
+ls -x
+ls a b
+ls /nope
+tree /nope
+tree /home/user/todo.txt
+who x
+foo
+
+
+exit
